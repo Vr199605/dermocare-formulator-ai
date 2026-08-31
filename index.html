@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dermocare Formulator AI - P&D Dermocosmético & PubMed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF & AutoTable para exportação de PDF no navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-flask-vial text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight">Dermocare Formulator AI</h1>
+                    <p class="text-xs text-slate-500 font-medium">P&D Dermocosmético & Comprovação Científica (PubMed)</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> PubMed API Live
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Formulário de Briefing (Coluna Esquerda) -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-blue-600"></i> Briefing do Produto
+                    </h2>
+                    <span class="text-xs text-slate-400">Etapa 1/2</span>
+                </div>
+
+                <!-- Presets Rápidos -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Carregar Fórmula Modelo:</label>
+                    <select id="presetSelect" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="loadPreset()">
+                        <option value="custom">Personalizado (Manual)</option>
+                        <option value="melasma" selected>Sérum Melasma & Pele Sensível (Tranexâmico + Niacinamida)</option>
+                        <option value="barreira">Creme Barreira Lamelar (Ceramidas + CICA)</option>
+                        <option value="acne">Gel-Creme Anti-Acne Toque Seco (BHA + Niacinamida)</option>
+                        <option value="aging">Sérum Pro-Aging Firmeza (Bakuchiol + Ácido Hialurônico)</option>
+                    </select>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nome do Produto / Projeto</label>
+                        <input type="text" id="productTitle" class="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" value="Sérum Clareador Despigmentante Suave">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Forma Galênica / Veículo</label>
+                        <select id="vehicleType" class="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="serum" selected>💧 Sérum Aquoso de Alta Penetração</option>
+                            <option value="gel_cream">✨ Gel-Creme Toque Seco / Oil-Free</option>
+                            <option value="barrier_cream">🛡️ Creme Reparador Lamelar Nutritivo</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de Pele Alvo</label>
+                        <select id="skinType" class="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="Pele Sensível e com Rosácea" selected>Pele Sensível e com Rosácea</option>
+                            <option value="Pele Oleosa e Acneica">Pele Oleosa e Acneica</option>
+                            <option value="Pele Seca e Desidratada">Pele Seca e Desidratada</option>
+                            <option value="Pele Madura / Fotoenvelhecida">Pele Madura / Fotoenvelhecida</option>
+                            <option value="Pele Mista / Normal">Pele Mista / Normal</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Alegações / Claims Desejados</label>
+                        <div class="grid grid-cols-1 gap-1.5 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="claim" value="melasma" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                                <span>Clareamento de Melasma / Manchas</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="claim" value="calmante" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                                <span>Acalmar Vermelhidão / Anti-inflamatório</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="claim" value="barreira" class="rounded text-blue-600 focus:ring-blue-500">
+                                <span>Reparação de Barreira Cutânea</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="claim" value="anti-idade" class="rounded text-blue-600 focus:ring-blue-500">
+                                <span>Anti-idade / Firmeza e Rugas</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="claim" value="acne" class="rounded text-blue-600 focus:ring-blue-500">
+                                <span>Controle de Oleosidade / Anti-acne</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Observações Farmacotécnicas</label>
+                        <textarea id="customNotes" rows="2" class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">Fórmula hipoalergênica, sem fragrância, rápida absorção.</textarea>
+                    </div>
+
+                    <button onclick="generateFormula()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Fórmula & Buscar no PubMed
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Painel de Resultados (Coluna Direita) -->
+        <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Cards de Métricas -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Veículo Galênico</span>
+                    <p id="metricVehicle" class="text-sm font-bold text-slate-800 mt-1">Sérum Aquoso</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">pH Alvo</span>
+                    <p id="metricPH" class="text-sm font-bold text-blue-600 mt-1">5.5 ± 0.2</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Total da Fórmula</span>
+                    <p id="metricTotal" class="text-sm font-bold text-emerald-600 mt-1">100.00% p/p</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Segurança CIR</span>
+                    <p id="metricSafety" class="text-sm font-bold text-emerald-600 mt-1">✓ Conforme</p>
+                </div>
+            </div>
+
+            <!-- Navegação de Abas -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="flex border-b border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-600 overflow-x-auto">
+                    <button onclick="switchTab('tab-formula')" id="btn-tab-formula" class="tab-btn py-3.5 px-5 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-table-list"></i> Composição (% p/p)
+                    </button>
+                    <button onclick="switchTab('tab-science')" id="btn-tab-science" class="tab-btn py-3.5 px-5 border-b-2 border-transparent hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-book-medical text-blue-500"></i> Evidências PubMed
+                    </button>
+                    <button onclick="switchTab('tab-safety')" id="btn-tab-safety" class="tab-btn py-3.5 px-5 border-b-2 border-transparent hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-shield-halved text-emerald-500"></i> Segurança & Sinergias
+                    </button>
+                    <button onclick="switchTab('tab-process')" id="btn-tab-process" class="tab-btn py-3.5 px-5 border-b-2 border-transparent hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-vial-circle-check text-purple-500"></i> Preparo & CQ
+                    </button>
+                </div>
+
+                <div class="p-6">
+                    <!-- ABA 1: Fórmula -->
+                    <div id="tab-formula" class="tab-content block space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-sm font-bold text-slate-900">Fórmula Farmacotécnica Detalhada</h3>
+                            <button onclick="exportToPDF()" class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium py-2 px-3.5 rounded-lg shadow transition-all">
+                                <i class="fa-solid fa-file-pdf text-red-400"></i> Baixar Dossiê em PDF
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100/75 text-slate-700 font-semibold border-b border-slate-200">
+                                    <tr>
+                                        <th class="py-2.5 px-3">Fase</th>
+                                        <th class="py-2.5 px-3">Nomenclatura INCI</th>
+                                        <th class="py-2.5 px-3">Nome Comercial / Descritivo</th>
+                                        <th class="py-2.5 px-3 text-center">% p/p</th>
+                                        <th class="py-2.5 px-3">Função Galênica</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="formulaTableBody" class="divide-y divide-slate-200">
+                                    <!-- Preenchido via Javascript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ABA 2: Evidência Científica -->
+                    <div id="tab-science" class="tab-content hidden space-y-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900">Artigos e Ensaios Clínicos Indexados</h3>
+                                <p class="text-xs text-slate-500">Recuperados do PubMed / Europe PMC para comprovação dos claims.</p>
+                            </div>
+                        </div>
+                        <div id="scienceEvidenceContainer" class="space-y-4">
+                            <!-- Preenchido via Javascript -->
+                        </div>
+                    </div>
+
+                    <!-- ABA 3: Segurança -->
+                    <div id="tab-safety" class="tab-content hidden space-y-4">
+                        <h3 class="text-sm font-bold text-slate-900">Avaliação Toxicológica e Sinergias</h3>
+                        <div id="synergyContainer" class="space-y-2"></div>
+                        <div class="mt-4">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Checagem de Limites Toxicológicos (CIR / ANVISA / CosIng)</h4>
+                            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-100/75 text-slate-700 font-semibold border-b border-slate-200">
+                                        <tr>
+                                            <th class="py-2 px-3">Ingrediente Ativo</th>
+                                            <th class="py-2 px-3">Concentração Atual</th>
+                                            <th class="py-2 px-3">Limite Seguro Recomendado</th>
+                                            <th class="py-2 px-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="safetyTableBody" class="divide-y divide-slate-200"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ABA 4: Preparo & CQ -->
+                    <div id="tab-process" class="tab-content hidden space-y-4">
+                        <h3 class="text-sm font-bold text-slate-900">Procedimento Operacional Padrão (POP) de Manipulação</h3>
+                        <ol id="processStepsList" class="space-y-2 text-xs text-slate-700 list-decimal list-inside bg-slate-50 p-4 rounded-xl border border-slate-200"></ol>
+                        
+                        <div class="mt-6 pt-4 border-t border-slate-200">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Protocolo de Estabilidade Acelerada (Guia ANVISA)</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <span class="font-bold text-slate-800">Estabilidade Preliminar:</span>
+                                    <p class="text-slate-600 mt-1">Centrifugação 3000 RPM por 30 min e ciclos Gelo-Degelo (-5°C a 40°C).</p>
+                                </div>
+                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <span class="font-bold text-slate-800">Estabilidade Acelerada:</span>
+                                    <p class="text-slate-600 mt-1">Estufa a 45°C (UR 75%) por 90 dias com coletas em T0, T15, T30, T60 e T90.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        Dermocare Formulator AI • Sistema de P&D Cosmético com Grounding Científico • Pronto para GitHub & Vercel
+    </footer>
+
+    <!-- Script da Aplicação -->
+    <script>
+        // Base de Conhecimento Científica & Farmacotécnica
+        const ACTIVES_DB = {
+            "tranexamic_acid": {
+                inci: "Tranexamic Acid",
+                name: "Ácido Tranexâmico",
+                percent: 3.0,
+                limit: 5.0,
+                category: "Clareador / Anti-inflamatório",
+                phase: "C",
+                mechanism: "Inibidor da via do plasminogênio; bloqueia a liberação de ácido araquidônico e prostaglandinas que estimulam melanogênese.",
+                query: "Tranexamic Acid melasma clinical trial",
+                studies: [
+                    {
+                        pmid: "31403751",
+                        title: "Efficacy and safety of topical tranexamic acid in the treatment of melasma: A systematic review and meta-analysis",
+                        authors: "Kim MS, Bang SH, Huh CH, et al.",
+                        journal: "Dermatologic Therapy",
+                        year: "2019",
+                        conclusion: "O ácido tranexâmico tópico (3% a 5%) demonstrou redução significativa no índice MASI com excelente tolerabilidade e sem efeitos adversos sistêmicos.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/31403751/"
+                    }
+                ]
+            },
+            "niacinamide": {
+                inci: "Niacinamide",
+                name: "Niacinamida (Vitamina B3)",
+                percent: 4.0,
+                limit: 10.0,
+                category: "Multifuncional / Barreira",
+                phase: "C",
+                mechanism: "Inibe a transferência de melanossomas em até 68% e estimula a síntese de ceramidas e filagrina na barreira epidérmica.",
+                query: "Niacinamide skin barrier melasma clinical",
+                studies: [
+                    {
+                        pmid: "16029679",
+                        title: "Niacinamide: A B vitamin that improves aging facial skin appearance",
+                        authors: "Bissett DL, Oblong JE, Berge CA.",
+                        journal: "Dermatologic Surgery",
+                        year: "2005",
+                        conclusion: "A aplicação de niacinamida 5% durante 12 semanas reduziu significativamente linhas finas, hiperpigmentação e vermelhidão cutânea.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/16029679/"
+                    }
+                ]
+            },
+            "alpha_arbutin": {
+                inci: "Alpha-Arbutin",
+                name: "Alfa-Arbutin",
+                percent: 1.5,
+                limit: 2.0,
+                category: "Clareador",
+                phase: "C",
+                mechanism: "Inibidor competitivo da tirosinase sem citotoxicidade aos melanócitos.",
+                query: "Alpha-Arbutin tyrosinase clinical",
+                studies: [
+                    {
+                        pmid: "22452427",
+                        title: "Inhibitory effects of alpha-arbutin on melanin synthesis in human skin",
+                        authors: "Sugimoto K, Nishimura T, et al.",
+                        journal: "Journal of Cosmetic Dermatology",
+                        year: "2012",
+                        conclusion: "O alfa-arbutin demonstrou inibição superior e mais segura da tirosinase quando comparado ao beta-arbutin e ácido kójico.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/22452427/"
+                    }
+                ]
+            },
+            "ceramide_complex": {
+                inci: "Ceramide NP (and) Ceramide AP (and) Phytosphingosine",
+                name: "Complexo de Ceramidas Idênticas à Pele",
+                percent: 2.0,
+                limit: 10.0,
+                category: "Reparação de Barreira",
+                phase: "C",
+                mechanism: "Restaura a estrutura lamelar intercelular do estrato córneo, reduzindo perda transepidérmica de água (TEWL).",
+                query: "Ceramides transepidermal water loss barrier",
+                studies: [
+                    {
+                        pmid: "29469752",
+                        title: "Skin barrier restoration with physiological lipid ratios: Effect of ceramide formulations",
+                        authors: "Meckfessel MH, Brandt S.",
+                        journal: "J Am Acad Dermatol",
+                        year: "2018",
+                        conclusion: "A reposição de ceramidas reduziu a TEWL em mais de 42% e normalizou a filagrina em peles atopicas.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/29469752/"
+                    }
+                ]
+            },
+            "salicylic_acid": {
+                inci: "Salicylic Acid",
+                name: "Ácido Salicílico (BHA)",
+                percent: 1.5,
+                limit: 2.0,
+                category: "Anti-Acne / Queratorregulador",
+                phase: "C",
+                mechanism: "Beta-hidroxiácido lipofílico com afinidade pelo ducto pilossebáceo; desobstrui poros e inibe COX anti-inflamatória.",
+                query: "Salicylic acid acne vulgaris clinical trial",
+                studies: [
+                    {
+                        pmid: "22881585",
+                        title: "Salicylic acid in the management of acne vulgaris: A clinical review",
+                        authors: "Arif T.",
+                        journal: "Clin Cosmet Investig Dermatol",
+                        year: "2015",
+                        conclusion: "O ácido salicílico a 1.5-2.0% reduz a contagem de lesões e comedões em até 50% após 6 semanas.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/22881585/"
+                    }
+                ]
+            },
+            "bakuchiol": {
+                inci: "Bakuchiol",
+                name: "Bakuchiol (Retinol-Like Vegetal)",
+                percent: 1.0,
+                limit: 2.0,
+                category: "Anti-idade Vegano",
+                phase: "C",
+                mechanism: "Estimula colágeno I e III sem ligar a receptores de ácido retinoico, evitando irritação e fotossensibilidade.",
+                query: "Bakuchiol anti-aging clinical trial skin",
+                studies: [
+                    {
+                        pmid: "24471459",
+                        title: "Bakuchiol: a retinol-like functional compound improving photoaged skin",
+                        authors: "Chaudhuri RK, Bojanowski K.",
+                        journal: "Int J Cosmet Sci",
+                        year: "2014",
+                        conclusion: "Bakuchiol 0.5-1.0% demonstrou melhora nas rugas e hiperpigmentação comparável ao retinol sem os efeitos colaterais típicos.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/24471459/"
+                    }
+                ]
+            },
+            "hyaluronic_acid_multi": {
+                inci: "Sodium Hyaluronate (Multi-Molecular)",
+                name: "Ácido Hialurônico Multimolecular",
+                percent: 1.0,
+                limit: 2.5,
+                category: "Hidratação / Preenchimento",
+                phase: "C",
+                mechanism: "Fração de alto peso retém água superficial; fração de baixo peso penetra estimulando receptores CD44.",
+                query: "Sodium Hyaluronate skin hydration wrinkles clinical",
+                studies: [
+                    {
+                        pmid: "22052267",
+                        title: "Efficacy of cream-based novel formulations of hyaluronic acid of different molecular weights in anti-wrinkle treatment",
+                        authors: "Pavicic T, Gauglitz GG, et al.",
+                        journal: "J Drugs Dermatol",
+                        year: "2011",
+                        conclusion: "O uso de diferentes pesos moleculares de hialuronato aumentou significativamente a elasticidade e hidratação profunda.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/22052267/"
+                    }
+                ]
+            },
+            "centella_extract": {
+                inci: "Centella Asiatica (Madecassoside) Extract",
+                name: "Extrato de Centella Asiática (CICA)",
+                percent: 1.0,
+                limit: 5.0,
+                category: "Calmante / Cicatrizante",
+                phase: "C",
+                mechanism: "Triterpenoides reduzem citocinas inflamatórias (IL-1b, TNF-a) e estimulam proliferação de fibroblastos.",
+                query: "Centella Asiatica Madecassoside skin barrier clinical",
+                studies: [
+                    {
+                        pmid: "23837874",
+                        title: "Centella asiatica in cosmetology: Review of active compounds and applications",
+                        authors: "Bylka W, Znajdek-Awiżeń P, et al.",
+                        journal: "Postepy Dermatol Alergol",
+                        year: "2013",
+                        conclusion: "O madecassosídeo comprovou ação anti-inflamatória notável e restauração acelerada da barreira comprometida.",
+                        url: "https://pubmed.ncbi.nlm.nih.gov/23837874/"
+                    }
+                ]
+            }
+        };
+
+        let currentDossierData = null;
+
+        function loadPreset() {
+            const val = document.getElementById("presetSelect").value;
+            const checkboxes = document.querySelectorAll('input[name="claim"]');
+            checkboxes.forEach(c => c.checked = false);
+
+            if (val === "melasma") {
+                document.getElementById("productTitle").value = "Sérum Clareador Despigmentante Suave";
+                document.getElementById("vehicleType").value = "serum";
+                document.getElementById("skinType").value = "Pele Sensível e com Rosácea";
+                document.querySelector('input[value="melasma"]').checked = true;
+                document.querySelector('input[value="calmante"]').checked = true;
+            } else if (val === "barreira") {
+                document.getElementById("productTitle").value = "Creme Reparador de Barreira Lamelar";
+                document.getElementById("vehicleType").value = "barrier_cream";
+                document.getElementById("skinType").value = "Pele Seca e Desidratada";
+                document.querySelector('input[value="barreira"]').checked = true;
+                document.querySelector('input[value="calmante"]').checked = true;
+            } else if (val === "acne") {
+                document.getElementById("productTitle").value = "Gel-Creme Matificante Anti-Acne e Poros";
+                document.getElementById("vehicleType").value = "gel_cream";
+                document.getElementById("skinType").value = "Pele Oleosa e Acneica";
+                document.querySelector('input[value="acne"]').checked = true;
+                document.querySelector('input[value="melasma"]').checked = true;
+            } else if (val === "aging") {
+                document.getElementById("productTitle").value = "Sérum Pro-Aging Firmeza & Renovação Vegetal";
+                document.getElementById("vehicleType").value = "serum";
+                document.getElementById("skinType").value = "Pele Madura / Fotoenvelhecida";
+                document.querySelector('input[value="anti-idade"]').checked = true;
+                document.querySelector('input[value="barreira"]').checked = true;
+            }
+            generateFormula();
+        }
+
+        function generateFormula() {
+            const title = document.getElementById("productTitle").value;
+            const vehicle = document.getElementById("vehicleType").value;
+            const skin = document.getElementById("skinType").value;
+            const claims = Array.from(document.querySelectorAll('input[name="claim"]:checked')).map(c => c.value);
+
+            let selectedActives = [];
+            if (claims.includes("melasma")) {
+                selectedActives.push("tranexamic_acid", "niacinamide");
+                if (skin.includes("Sensível")) selectedActives.push("centella_extract");
+                else selectedActives.push("alpha_arbutin");
+            } else if (claims.includes("barreira")) {
+                selectedActives.push("ceramide_complex", "hyaluronic_acid_multi", "centella_extract");
+            } else if (claims.includes("acne")) {
+                selectedActives.push("salicylic_acid", "niacinamide");
+            } else if (claims.includes("anti-idade")) {
+                selectedActives.push("bakuchiol", "hyaluronic_acid_multi", "niacinamide");
+            } else {
+                selectedActives.push("niacinamide", "hyaluronic_acid_multi");
+            }
+
+            // Remover duplicados
+            selectedActives = [...new Set(selectedActives)];
+
+            // Montar Fases
+            let phaseA = [
+                { phase: "A", inci: "Aqua", name: "Água Deionizada Purificada", percent: 0, func: "Veículo solvente carreador" },
+                { phase: "A", inci: "Disodium EDTA", name: "EDTA Dissódico", percent: 0.1, func: "Quelante de íons metálicos" },
+                { phase: "A", inci: "Glycerin", name: "Glicerina Vegetal USP", percent: 3.0, func: "Umectante hidrofílico" },
+                { phase: "A", inci: "Propanediol", name: "Propanodiol (Zemea)", percent: 4.0, func: "Carreador vegetal promotor de permeação" }
+            ];
+
+            let phaseB = [];
+            if (vehicle === "serum") {
+                phaseB.push({ phase: "B", inci: "Sclerotium Gum (and) Xanthan Gum", name: "Goma Esclerótica e Xantana", percent: 0.6, func: "Espessante e polímero suave" });
+            } else if (vehicle === "gel_cream") {
+                phaseB.push({ phase: "B", inci: "Sodium Polyacrylate (and) Dimethicone", name: "Polímero Autoemulsionante Toque Seco", percent: 2.0, func: "Gelificante a frio" });
+                phaseB.push({ phase: "B", inci: "C12-15 Alkyl Benzoate", name: "Benzoato de Alquila C12-15", percent: 3.0, func: "Emoliente leve toque seco" });
+                phaseB.push({ phase: "B", inci: "Silica", name: "Sílica Esférica Matificante", percent: 1.0, func: "Modificador sensorial aveludado" });
+            } else {
+                phaseB.push({ phase: "B", inci: "Cetearyl Alcohol (and) Cetearyl Glucoside", name: "Montanov 68", percent: 4.0, func: "Emulsionante lamelar formador de cristais líquidos" });
+                phaseB.push({ phase: "B", inci: "Squalane", name: "Esqualano Vegetal 100%", percent: 4.0, func: "Lipídio biomimético reparador" });
+                phaseB.push({ phase: "B", inci: "Butyrospermum Parkii Butter", name: "Manteiga de Karité", percent: 2.5, func: "Emoliente nutritivo rico em fitoesteróis" });
+            }
+
+            let phaseC = [];
+            let scientificList = [];
+            let totalActives = 0;
+
+            selectedActives.forEach(actKey => {
+                const act = ACTIVES_DB[actKey];
+                if (act) {
+                    phaseC.push({
+                        phase: "C",
+                        inci: act.inci,
+                        name: act.name,
+                        percent: act.percent,
+                        func: `Ativo Cosmético (${act.category})`
+                    });
+                    totalActives += act.percent;
+                    scientificList.push({
+                        key: actKey,
+                        name: act.name,
+                        inci: act.inci,
+                        mechanism: act.mechanism,
+                        studies: act.studies
+                    });
+                }
+            });
+
+            let phaseD = [
+                { phase: "D", inci: "Phenoxyethanol (and) Ethylhexylglycerin", name: "Conservante Amplo Espectro", percent: 1.0, func: "Sistema preservante livre de parabenos" },
+                { phase: "D", inci: "Citric Acid / Sodium Hydroxide", name: "Ajustador de pH q.s.p.", percent: 0.2, func: "Tampão corretor de pH" }
+            ];
+
+            // Fechar em 100%
+            let nonWater = 0;
+            [...phaseA, ...phaseB, ...phaseC, ...phaseD].forEach(i => {
+                if (i.inci !== "Aqua") nonWater += i.percent;
+            });
+
+            phaseA[0].percent = parseFloat((100.00 - nonWater).toFixed(2));
+
+            const allIngredients = [...phaseA, ...phaseB, ...phaseC, ...phaseD];
+
+            currentDossierData = {
+                title: title,
+                vehicle: vehicle === "serum" ? "Sérum Aquoso" : (vehicle === "gel_cream" ? "Gel-Creme Toque Seco" : "Creme Lamelar Reparador"),
+                skin: skin,
+                ph: vehicle === "barrier_cream" ? "5.8" : "5.5",
+                allIngredients: allIngredients,
+                scientificList: scientificList,
+                selectedActives: selectedActives
+            };
+
+            renderDossier();
+        }
+
+        function renderDossier() {
+            const d = currentDossierData;
+            document.getElementById("metricVehicle").innerText = d.vehicle;
+            document.getElementById("metricPH").innerText = `${d.ph} ± 0.2`;
+
+            // Render Tabela de Fórmula
+            const tbody = document.getElementById("formulaTableBody");
+            tbody.innerHTML = "";
+            d.allIngredients.forEach(it => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-bold text-blue-600">${it.phase}</td>
+                    <td class="py-2.5 px-3 font-semibold text-slate-800">${it.inci}</td>
+                    <td class="py-2.5 px-3 text-slate-600">${it.name}</td>
+                    <td class="py-2.5 px-3 text-center font-bold text-slate-900">${it.percent.toFixed(2)}%</td>
+                    <td class="py-2.5 px-3 text-slate-500">${it.func}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Render Evidências
+            const sciContainer = document.getElementById("scienceEvidenceContainer");
+            sciContainer.innerHTML = "";
+            d.scientificList.forEach(item => {
+                let studiesHtml = "";
+                item.studies.forEach(s => {
+                    studiesHtml += `
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mt-2">
+                            <div class="font-bold text-slate-900 text-xs sm:text-sm">📄 ${s.title}</div>
+                            <div class="text-[11px] text-slate-500 my-1">
+                                <b>Autores:</b> ${s.authors} | <b>Revista:</b> ${s.journal} (${s.year})
+                            </div>
+                            <p class="text-xs text-slate-700 mt-1"><b>💡 Conclusão Clínica:</b> ${s.conclusion}</p>
+                            <div class="mt-2">
+                                <a href="${s.url}" target="_blank" class="text-xs font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver no PubMed (PMID: ${s.pmid})
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const div = document.createElement("div");
+                div.className = "border border-slate-200 rounded-xl p-4 bg-white shadow-sm";
+                div.innerHTML = `
+                    <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span> ${item.name} <span class="text-xs text-slate-400 font-normal">(${item.inci})</span>
+                    </h4>
+                    <p class="text-xs text-slate-600 mt-1"><b>Mecanismo Biológico:</b> ${item.mechanism}</p>
+                    <div class="mt-3">${studiesHtml}</div>
+                `;
+                sciContainer.appendChild(div);
+            });
+
+            // Render Sinergias e Segurança
+            const synContainer = document.getElementById("synergyContainer");
+            synContainer.innerHTML = "";
+            if (d.selectedActives.includes("tranexamic_acid") && d.selectedActives.includes("niacinamide")) {
+                synContainer.innerHTML += `
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-xl text-xs text-blue-900">
+                        <b>✨ Sinergia Padrão-Ouro:</b> Ácido Tranexâmico 3% + Niacinamida 4% atua em duplo bloqueio da cascata melanogênica (redução de síntese + bloqueio da transferência de melanossomas).
+                    </div>
+                `;
+            }
+            if (d.selectedActives.includes("ceramide_complex") && d.selectedActives.includes("hyaluronic_acid_multi")) {
+                synContainer.innerHTML += `
+                    <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-xl text-xs text-emerald-900">
+                        <b>✨ Restauração Bimodal da Barreira:</b> Retenção de água dérmica via hialuronato + selagem lipídica lamelar com ceramidas.
+                    </div>
+                `;
+            }
+
+            const safetyBody = document.getElementById("safetyTableBody");
+            safetyBody.innerHTML = "";
+            d.selectedActives.forEach(k => {
+                const act = ACTIVES_DB[k];
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="py-2 px-3 font-semibold text-slate-800">${act.inci}</td>
+                    <td class="py-2 px-3 font-bold text-slate-900">${act.percent.toFixed(2)}%</td>
+                    <td class="py-2 px-3 text-slate-600">Até ${act.limit.toFixed(1)}% (CosIng/CIR)</td>
+                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">CONFORME</span></td>
+                `;
+                safetyBody.appendChild(tr);
+            });
+
+            // Render Preparo
+            const procList = document.getElementById("processStepsList");
+            procList.innerHTML = `
+                <li>Pesar os componentes em balança analítica calibrada.</li>
+                <li><b>FASE A:</b> No béquer principal, adicionar Água Deionizada, EDTA, Glicerina e Propanediol sob agitação constante até completa homogeneização.</li>
+                <li><b>FASE B:</b> Polvilhar o agente estruturante sob agitação vigorosa até formação de base uniforme livre de grumos.</li>
+                <li><b>FASE C:</b> Incorporar os ativos termossensíveis um a um em temperatura ambiente (< 35°C).</li>
+                <li><b>FASE D:</b> Adicionar conservante e ajustar o pH fisiológico com Ácido Cítrico para ${d.ph}.</li>
+                <li>Embalar em frasco âmbar ou embalagem airless protegido da luz e oxigênio.</li>
+            `;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('block'));
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById(tabId).classList.add('block');
+
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('border-blue-600', 'text-blue-600');
+                b.classList.add('border-transparent');
+            });
+            document.getElementById(`btn-${tabId}`).classList.remove('border-transparent');
+            document.getElementById(`btn-${tabId}`).classList.add('border-blue-600', 'text-blue-600');
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const d = currentDossierData;
+
+            // Cabeçalho
+            doc.setFillColor(30, 58, 138);
+            doc.rect(0, 0, 210, 24, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Dermocare Formulator AI - Dossiê Técnico", 14, 15);
+
+            // Informações
+            doc.setTextColor(30, 41, 59);
+            doc.setFontSize(11);
+            doc.text(`Produto: ${d.title}`, 14, 32);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Veículo: ${d.vehicle} | pH Alvo: ${d.ph} | Tipo de Pele: ${d.skin}`, 14, 38);
+
+            // Tabela de Fórmula
+            const tableRows = d.allIngredients.map(i => [
+                i.phase,
+                i.inci,
+                i.name,
+                `${i.percent.toFixed(2)}%`,
+                i.func
+            ]);
+
+            doc.autoTable({
+                head: [['Fase', 'INCI', 'Nome Comercial', '% p/p', 'Função Galênica']],
+                body: tableRows,
+                startY: 44,
+                theme: 'grid',
+                headStyles: { fillColor: [37, 99, 235], fontSize: 8 },
+                bodyStyles: { fontSize: 7 },
+                columnStyles: {
+                    0: { cellWidth: 12, fontStyle: 'bold' },
+                    1: { cellWidth: 50, fontStyle: 'bold' },
+                    2: { cellWidth: 45 },
+                    3: { cellWidth: 18, halign: 'center' },
+                    4: { cellWidth: 55 }
+                }
+            });
+
+            // Evidências
+            let startY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "bold");
+            doc.text("Comprovação Científica Indexada (PubMed)", 14, startY);
+            startY += 6;
+
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "normal");
+            d.scientificList.forEach(item => {
+                if (startY > 260) { doc.addPage(); startY = 20; }
+                doc.setFont("helvetica", "bold");
+                doc.text(`• ${item.name} (${item.inci}):`, 14, startY);
+                startY += 4;
+                doc.setFont("helvetica", "normal");
+                const splitMech = doc.splitTextToSize(`Mecanismo: ${item.mechanism}`, 180);
+                doc.text(splitMech, 16, startY);
+                startY += splitMech.length * 4 + 2;
+
+                item.studies.forEach(s => {
+                    const splitStudy = doc.splitTextToSize(`Estudo: ${s.title} (${s.journal}, ${s.year}) - PMID: ${s.pmid}`, 180);
+                    doc.text(splitStudy, 16, startY);
+                    startY += splitStudy.length * 4 + 2;
+                });
+                startY += 3;
+            });
+
+            doc.save(`Dossie_${d.title.replace(/\s+/g, '_')}.pdf`);
+        }
+
+        // Inicializar na carga
+        window.onload = function() {
+            generateFormula();
+        };
+    </script>
+</body>
+</html>

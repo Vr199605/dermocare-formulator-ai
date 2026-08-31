@@ -4,5 +4,5 @@ echo ======================================================
 echo    Iniciando Dermocare Formulator AI (Streamlit)...
 echo ======================================================
 cd /d "%~dp0"
-python -m streamlit run app.py
+python -m streamlit run streamlit_app.py
 pause
